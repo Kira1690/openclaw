@@ -221,6 +221,18 @@ export class OpenClawApp extends LitElement {
   @state() configSearchQuery = "";
   @state() configActiveSection: string | null = null;
   @state() configActiveSubsection: string | null = null;
+  @state() communicationsFormMode: "form" | "raw" = "form";
+  @state() communicationsSearchQuery = "";
+  @state() communicationsActiveSection: string | null = null;
+  @state() communicationsActiveSubsection: string | null = null;
+  @state() appearanceFormMode: "form" | "raw" = "form";
+  @state() appearanceSearchQuery = "";
+  @state() appearanceActiveSection: string | null = null;
+  @state() appearanceActiveSubsection: string | null = null;
+  @state() automationFormMode: "form" | "raw" = "form";
+  @state() automationSearchQuery = "";
+  @state() automationActiveSection: string | null = null;
+  @state() automationActiveSubsection: string | null = null;
 
   @state() channelsLoading = false;
   @state() channelsSnapshot: ChannelsStatusSnapshot | null = null;

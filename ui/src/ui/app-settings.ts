@@ -253,7 +253,12 @@ export async function refreshActiveTab(host: SettingsHost) {
       !host.chatHasAutoScrolled,
     );
   }
-  if (host.tab === "config") {
+  if (
+    host.tab === "config" ||
+    host.tab === "communications" ||
+    host.tab === "appearance" ||
+    host.tab === "automation"
+  ) {
     await loadConfigSchema(host as unknown as OpenClawApp);
     await loadConfig(host as unknown as OpenClawApp);
   }

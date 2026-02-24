@@ -43,6 +43,10 @@ export type ConfigProps = {
   setThemeMode: (mode: ThemeMode, context?: ThemeTransitionContext) => void;
   gatewayUrl: string;
   assistantName: string;
+  navRootLabel?: string;
+  includeSections?: string[];
+  excludeSections?: string[];
+  includeVirtualSections?: boolean;
 };
 
 // SVG Icons for sidebar (Lucide-style)
@@ -382,6 +386,52 @@ function getSectionIcon(key: string) {
   return sidebarIcons[key as keyof typeof sidebarIcons] ?? sidebarIcons.default;
 }
 
+function scopeSchemaSections(
+  schema: JsonSchema | null,
+  params: { include?: ReadonlySet<string> | null; exclude?: ReadonlySet<string> | null },
+): JsonSchema | null {
+  if (!schema || schemaType(schema) !== "object" || !schema.properties) {
+    return schema;
+  }
+  const include = params.include;
+  const exclude = params.exclude;
+  const nextProps: Record<string, JsonSchema> = {};
+  for (const [key, value] of Object.entries(schema.properties)) {
+    if (include && include.size > 0 && !include.has(key)) {
+      continue;
+    }
+    if (exclude && exclude.size > 0 && exclude.has(key)) {
+      continue;
+    }
+    nextProps[key] = value;
+  }
+  return { ...schema, properties: nextProps };
+}
+
+function scopeUnsupportedPaths(
+  unsupportedPaths: string[],
+  params: { include?: ReadonlySet<string> | null; exclude?: ReadonlySet<string> | null },
+): string[] {
+  const include = params.include;
+  const exclude = params.exclude;
+  if ((!include || include.size === 0) && (!exclude || exclude.size === 0)) {
+    return unsupportedPaths;
+  }
+  return unsupportedPaths.filter((entry) => {
+    if (entry === "<root>") {
+      return true;
+    }
+    const [top] = entry.split(".");
+    if (include && include.size > 0) {
+      return include.has(top);
+    }
+    if (exclude && exclude.size > 0) {
+      return !exclude.has(top);
+    }
+    return true;
+  });
+}
+
 function resolveSectionMeta(
   key: string,
   schema?: JsonSchema,
@@ -630,7 +680,14 @@ let validityDismissed = false;
 
 export function renderConfig(props: ConfigProps) {
   const validity = props.valid == null ? "unknown" : props.valid ? "valid" : "invalid";
-  const analysis = analyzeConfigSchema(props.schema);
+  const includeVirtualSections = props.includeVirtualSections ?? true;
+  const include = props.includeSections?.length ? new Set(props.includeSections) : null;
+  const exclude = props.excludeSections?.length ? new Set(props.excludeSections) : null;
+  const rawAnalysis = analyzeConfigSchema(props.schema);
+  const analysis = {
+    schema: scopeSchemaSections(rawAnalysis.schema, { include, exclude }),
+    unsupportedPaths: scopeUnsupportedPaths(rawAnalysis.unsupportedPaths, { include, exclude }),
+  };
   const formUnsafe = analysis.schema ? analysis.unsupportedPaths.length > 0 : false;
 
   // Build categorised nav from schema — only include sections that exist in the schema
@@ -639,7 +696,9 @@ export function renderConfig(props: ConfigProps) {
   const VIRTUAL_SECTIONS = new Set(["__appearance__"]);
   const visibleCategories = SECTION_CATEGORIES.map((cat) => ({
     ...cat,
-    sections: cat.sections.filter((s) => VIRTUAL_SECTIONS.has(s.key) || s.key in schemaProps),
+    sections: cat.sections.filter(
+      (s) => (includeVirtualSections && VIRTUAL_SECTIONS.has(s.key)) || s.key in schemaProps,
+    ),
   })).filter((cat) => cat.sections.length > 0);
 
   // Catch any schema keys not in our categories
@@ -650,7 +709,10 @@ export function renderConfig(props: ConfigProps) {
   const otherCategory: SectionCategory | null =
     extraSections.length > 0 ? { id: "other", label: "Other", sections: extraSections } : null;
 
-  const isVirtualSection = props.activeSection != null && VIRTUAL_SECTIONS.has(props.activeSection);
+  const isVirtualSection =
+    includeVirtualSections &&
+    props.activeSection != null &&
+    VIRTUAL_SECTIONS.has(props.activeSection);
   const activeSectionSchema =
     props.activeSection &&
     !isVirtualSection &&
@@ -698,6 +760,12 @@ export function renderConfig(props: ConfigProps) {
     hasChanges &&
     (props.formMode === "raw" ? true : canSaveForm);
   const canUpdate = props.connected && !props.applying && !props.updating;
+
+  const showAppearanceOnRoot =
+    includeVirtualSections &&
+    props.formMode === "form" &&
+    props.activeSection === null &&
+    Boolean(include?.has("__appearance__"));
 
   return html`
     <div class="config-layout ${sidebarCollapsed ? "config-layout--sidebar-collapsed" : ""} ${props.activeSection ? "config-layout--section-active" : ""}">
@@ -775,7 +843,7 @@ export function renderConfig(props: ConfigProps) {
             @click=${() => props.onSectionChange(null)}
           >
             <span class="config-nav__icon">${sidebarIcons.all}</span>
-            <span class="config-nav__label">All Settings</span>
+            <span class="config-nav__label">${props.navRootLabel ?? "All Settings"}</span>
           </button>
           ${[...visibleCategories, ...(otherCategory ? [otherCategory] : [])].map(
             (cat) => html`
@@ -1062,9 +1130,12 @@ export function renderConfig(props: ConfigProps) {
         <div class="config-content ${props.activeSection === "env" ? "config-env-values--blurred" : ""}">
           ${
             props.activeSection === "__appearance__"
-              ? renderAppearanceSection(props)
+              ? includeVirtualSections
+                ? renderAppearanceSection(props)
+                : nothing
               : props.formMode === "form"
                 ? html`
+                ${showAppearanceOnRoot ? renderAppearanceSection(props) : nothing}
                 ${
                   props.schemaLoading
                     ? html`

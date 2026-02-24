@@ -113,6 +113,18 @@ export type AppViewState = {
   configSearchQuery: string;
   configActiveSection: string | null;
   configActiveSubsection: string | null;
+  communicationsFormMode: "form" | "raw";
+  communicationsSearchQuery: string;
+  communicationsActiveSection: string | null;
+  communicationsActiveSubsection: string | null;
+  appearanceFormMode: "form" | "raw";
+  appearanceSearchQuery: string;
+  appearanceActiveSection: string | null;
+  appearanceActiveSubsection: string | null;
+  automationFormMode: "form" | "raw";
+  automationSearchQuery: string;
+  automationActiveSection: string | null;
+  automationActiveSubsection: string | null;
   channelsLoading: boolean;
   channelsSnapshot: ChannelsStatusSnapshot | null;
   channelsError: string | null;
