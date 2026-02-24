@@ -458,7 +458,7 @@ export function renderTopbarThemeModeToggle(state: AppViewState) {
 
 export function renderThemeToggle(state: AppViewState) {
   const toggleOpen = (e: Event) => {
-    const orb = (e.currentTarget as HTMLElement).closest(".theme-orb");
+    const orb = (e.currentTarget as HTMLElement).closest<HTMLElement>(".theme-orb");
     if (!orb) {
       return;
     }
@@ -478,7 +478,7 @@ export function renderThemeToggle(state: AppViewState) {
   };
 
   const pick = (opt: ThemeOption, e: Event) => {
-    const orb = (e.currentTarget as HTMLElement).closest(".theme-orb");
+    const orb = (e.currentTarget as HTMLElement).closest<HTMLElement>(".theme-orb");
     orb?.classList.remove("theme-orb--open");
     if (opt.id !== state.theme) {
       const context: ThemeTransitionContext = { element: orb ?? undefined };

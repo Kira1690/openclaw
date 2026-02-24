@@ -64,12 +64,13 @@ export function startStt(callbacks: SttCallbacks): boolean {
 
   recognition.addEventListener("start", () => callbacks.onStart?.());
 
-  recognition.addEventListener("result", (event: SpeechRecognitionEvent) => {
+  recognition.addEventListener("result", (event) => {
+    const speechEvent = event as unknown as SpeechRecognitionEvent;
     let interimTranscript = "";
     let finalTranscript = "";
 
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const result = event.results[i];
+    for (let i = speechEvent.resultIndex; i < speechEvent.results.length; i++) {
+      const result = speechEvent.results[i];
       if (!result?.[0]) {
         continue;
       }
@@ -88,11 +89,12 @@ export function startStt(callbacks: SttCallbacks): boolean {
     }
   });
 
-  recognition.addEventListener("error", (event: SpeechRecognitionErrorEvent) => {
-    if (event.error === "aborted" || event.error === "no-speech") {
+  recognition.addEventListener("error", (event) => {
+    const speechEvent = event as unknown as SpeechRecognitionErrorEvent;
+    if (speechEvent.error === "aborted" || speechEvent.error === "no-speech") {
       return;
     }
-    callbacks.onError?.(event.error);
+    callbacks.onError?.(speechEvent.error);
   });
 
   recognition.addEventListener("end", () => {
